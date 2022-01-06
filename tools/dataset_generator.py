@@ -36,6 +36,8 @@ flags.DEFINE_integer('episodes_per_task', 10,
                      'The number of episodes to collect per task.')
 flags.DEFINE_integer('variations', -1,
                      'Number of variations to collect per task. -1 for all.')
+flags.DEFINE_integer('offset', 0,
+                     'Starting index')
 
 
 def check_and_make(dir):
@@ -213,6 +215,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
 
     tasks_with_problems = results[i] = ''
 
+
     while True:
         # Figure out what task/variation this thread is going to do
         with lock:
@@ -233,6 +236,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
                 variation_count.value = my_variation_count = 0
                 task_index.value += 1
 
+
             variation_count.value += 1
             if task_index.value >= num_tasks:
                 print('Process', i, 'finished')
@@ -242,6 +246,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
         task_env = rlbench_env.get_task(t)
         task_env.set_variation(my_variation_count)
         obs, descriptions = task_env.reset()
+        descriptions.instructions = obs
 
         variation_path = os.path.join(
             FLAGS.save_path, task_env.get_name(),
@@ -257,7 +262,7 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
         check_and_make(episodes_path)
 
         abort_variation = False
-        for ex_idx in range(FLAGS.episodes_per_task):
+        for ex_idx in range(FLAGS.offset, FLAGS.episodes_per_task):
             print('Process', i, '// Task:', task_env.get_name(),
                   '// Variation:', my_variation_count, '// Demo:', ex_idx)
             attempts = 10
@@ -305,28 +310,43 @@ def main(argv):
 
     tasks = [task_file_to_task_class(t) for t in task_files]
 
-    manager = Manager()
-
-    result_dict = manager.dict()
-    file_lock = manager.Lock()
-
-    task_index = manager.Value('i', 0)
-    variation_count = manager.Value('i', 0)
-    lock = manager.Lock()
 
     check_and_make(FLAGS.save_path)
 
-    processes = [Process(
-        target=run, args=(
-            i, lock, task_index, variation_count, result_dict, file_lock,
-            tasks))
-        for i in range(FLAGS.processes)]
-    [t.start() for t in processes]
-    [t.join() for t in processes]
+    if FLAGS.processes > 0:
+        manager = Manager()
 
-    print('Data collection done!')
-    for i in range(FLAGS.processes):
-        print(result_dict[i])
+        result_dict = manager.dict()
+        file_lock = manager.Lock()
+
+        task_index = manager.Value('i', 0)
+        variation_count = manager.Value('i', 0)
+        lock = manager.Lock()
+        processes = [Process(
+            target=run, args=(
+                i, lock, task_index, variation_count, result_dict, file_lock,
+                tasks))
+            for i in range(FLAGS.processes)]
+        [t.start() for t in processes]
+        [t.join() for t in processes]
+
+        print('Data collection done!')
+        for i in range(FLAGS.processes):
+            print(result_dict[i])
+    else:
+        result_dict = [{}]
+        class FakeLock:
+            def __enter__(self):
+                pass
+            def __exit__(self,  type, value, traceback):
+                pass
+
+        from dataclasses import dataclass
+        @dataclass
+        class FakeValue:
+            value: int = 0
+        run(0, FakeLock(), FakeValue(), FakeValue(), result_dict, None, tasks)
+        print(result_dict[0])
 
 
 if __name__ == '__main__':

@@ -7,7 +7,6 @@ from typing import List
 import numpy as np
 from PIL import Image
 from natsort import natsorted
-from pyrep.objects import VisionSensor
 
 from rlbench.backend.const import *
 from rlbench.backend.utils import image_to_float_array, rgb_handles_to_mask
@@ -254,26 +253,31 @@ def get_stored_demos(amount: int, image_paths: bool, dataset_root: str,
                         obs[i].front_depth = None
 
                 if obs_config.left_shoulder_camera.point_cloud:
+                    from pyrep.objects import VisionSensor
                     obs[i].left_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
                         l_sh_depth_m,
                         obs[i].misc['left_shoulder_camera_extrinsics'],
                         obs[i].misc['left_shoulder_camera_intrinsics'])
                 if obs_config.right_shoulder_camera.point_cloud:
+                    from pyrep.objects import VisionSensor
                     obs[i].right_shoulder_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
                         r_sh_depth_m,
                         obs[i].misc['right_shoulder_camera_extrinsics'],
                         obs[i].misc['right_shoulder_camera_intrinsics'])
                 if obs_config.overhead_camera.point_cloud:
+                    from pyrep.objects import VisionSensor
                     obs[i].overhead_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
                         oh_depth_m,
                         obs[i].misc['overhead_camera_extrinsics'],
                         obs[i].misc['overhead_camera_intrinsics'])
                 if obs_config.wrist_camera.point_cloud:
+                    from pyrep.objects import VisionSensor
                     obs[i].wrist_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
                         wrist_depth_m,
                         obs[i].misc['wrist_camera_extrinsics'],
                         obs[i].misc['wrist_camera_intrinsics'])
                 if obs_config.front_camera.point_cloud:
+                    from pyrep.objects import VisionSensor
                     obs[i].front_point_cloud = VisionSensor.pointcloud_from_depth_and_camera_params(
                         front_depth_m,
                         obs[i].misc['front_camera_extrinsics'],

@@ -3,10 +3,6 @@ from typing import List, Callable
 
 import numpy as np
 from pyquaternion import Quaternion
-from pyrep import PyRep
-from pyrep.const import ObjectType, ConfigurationPathAlgorithms
-from pyrep.errors import IKError
-from pyrep.objects import Dummy
 
 from rlbench import utils
 from rlbench.action_modes import ArmActionMode, ActionMode
@@ -34,7 +30,7 @@ class TaskEnvironmentError(Exception):
 
 class TaskEnvironment(object):
 
-    def __init__(self, pyrep: PyRep, robot: Robot, scene: Scene, task: Task,
+    def __init__(self, pyrep, robot: Robot, scene: Scene, task: Task,
                  action_mode: ActionMode, dataset_root: str,
                  obs_config: ObservationConfig,
                  static_positions: bool = False,
@@ -55,6 +51,7 @@ class TaskEnvironment(object):
 
         self._scene.load(self._task)
         self._pyrep.start()
+        from pyrep.const import ObjectType
         self._robot_shapes = self._robot.arm.get_objects_in_tree(
             object_type=ObjectType.SHAPE)
 
@@ -112,6 +109,7 @@ class TaskEnvironment(object):
         self._robot.arm.set_joint_forces(np.abs(action))
 
     def _ee_action(self, action, relative_to=None):
+        from pyrep.errors import IKError
         self._assert_unit_quaternion(action[3:])
         try:
             joint_positions = self._robot.arm.solve_ik_via_jacobian(
@@ -139,6 +137,7 @@ class TaskEnvironment(object):
             done = reached or not_moving
 
     def _path_action_get_path(self, action, collision_checking, relative_to):
+        from pyrep.errors import IKError
         try:
             path = self._robot.arm.get_path(
                 action[:3], quaternion=action[3:],
